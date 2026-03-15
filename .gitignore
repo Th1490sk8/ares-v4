@@ -1,6 +1,19 @@
-/.vscode
-/.embuild
-/target
-/Cargo.lock
-.cargo/
+# Pastas de Compilação (Pesadas)
+/target/
+/.embuild/
+
+# Node.js (Servidor)
+node_modules/
+package-lock.json
+
+# ESP-IDF
+sdkconfig
+dependencies.lock
+
+# Editor
+/.vscode/
+
+# Rust - Nota: Removemos o .cargo/ e o Cargo.lock daqui!
+# Queremos que o .cargo/config.toml e o Cargo.lock subam para o GitHub
+# para garantir que o projeto sempre compile com as mesmas versões.
 cfg.toml
