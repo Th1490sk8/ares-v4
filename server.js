@@ -34,6 +34,23 @@ db.connect(err => {
     console.log('✅ [SISTEMA] Banco de Dados ORBITAL Sincronizado.');
 });
 
+// Comandante, cole isso logo após o db.connect ou no início do arquivo
+const queryCriarTabela = `
+CREATE TABLE IF NOT EXISTS leituras (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    temperatura FLOAT NOT NULL,
+    umidade FLOAT NOT NULL,
+    data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);`;
+
+db.query(queryCriarTabela, (err, results) => {
+    if (err) {
+        console.error('❌ Erro ao garantir tabela:', err);
+    } else {
+        console.log('✅ Tabela "leituras" verificada/criada com sucesso!');
+    }
+});
+
 // --- ROTAS DO SERVIDOR ---
 app.get('/', (req, res) => {
     res.send(getHtmlContent());
