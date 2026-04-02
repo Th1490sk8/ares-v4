@@ -75,7 +75,8 @@ app.post('/api/dados', async (req, res) => {
 
 // Dashboard consome esses dados (JSON) - [CORRIGIDO AQUI]
 app.get('/api/data', (req, res) => {
-    const sql = 'SELECT temperatura, umidade, DATE_FORMAT(data_hora, "%H:%i:%s") as hora FROM leituras ORDER BY id DESC LIMIT 20';
+    // CORREÇÃO: Usando crases e aspas simples '%H:%i:%s' para não conflitar com o MySQL Strict Mode
+    const sql = `SELECT temperatura, umidade, DATE_FORMAT(data_hora, '%H:%i:%s') as hora FROM leituras ORDER BY id DESC LIMIT 20`;
     db.query(sql, (err, results) => {
         if (err) {
             console.error('Erro no select:', err);
