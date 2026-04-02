@@ -1,6 +1,14 @@
 {
+  "name": "ares-v4-server",
+  "version": "1.0.0",
+  "description": "Matriz Orbital ARES v5",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
-    "express": "^5.2.1",
-    "mysql2": "^3.19.1"
+    "express": "^4.18.2",
+    "mysql2": "^3.6.0",
+    "groq-sdk": "^0.3.3"
   }
 }
