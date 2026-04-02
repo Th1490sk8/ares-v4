@@ -22,8 +22,12 @@ const groq = new Groq({
 });
 
 // 🛡️ MATRIZ BLINDADA: URL do Banco oculta
-const uri_aiven = process.env.DATABASE_URL;
-const db = mysql.createPool(uri_aiven);
+// Removemos a string que causa o aviso e ativamos o SSL nativo do Node
+const uri_limpa = process.env.DATABASE_URL ? process.env.DATABASE_URL.replace('?ssl-mode=REQUIRED', '') : '';
+const db = mysql.createPool({
+    uri: uri_limpa,
+    ssl: { rejectUnauthorized: false } // Mantém a criptografia ativa sem irritar o mysql2
+});
 
 // Garantir Tabela
 const queryCriarTabela = `
