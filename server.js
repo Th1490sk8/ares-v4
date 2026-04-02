@@ -23,7 +23,7 @@ const groq = new Groq({
 // --- CONEXÃO COM O BANCO DE DADOS (AIVEN) ---
 const uri_aiven = "mysql://avnadmin:AVNS_ve_Ovl6MuOzWmiWYOwb@mysql-15ef5ed3-thiagolsk8-8d2b.b.aivencloud.com:10432/defaultdb?ssl-mode=REQUIRED";
 
-const db = mysql.createPool(uri_aiven); // Alterado para Pool para melhor estabilidade
+const db = mysql.createPool(uri_aiven);
 
 // Garantir Tabela
 const queryCriarTabela = `
@@ -51,7 +51,10 @@ app.post('/api/dados', async (req, res) => {
     const sql = 'INSERT INTO leituras (temperatura, umidade) VALUES (?, ?)';
     
     db.query(sql, [temperatura, umidade], async (err) => {
-        if (err) return res.status(500).send('Erro no banco');
+        if (err) {
+            console.error('Erro no insert:', err);
+            return res.status(500).send('Erro no banco');
+        }
         
         try {
             const chatCompletion = await groq.chat.completions.create({
@@ -70,18 +73,29 @@ app.post('/api/dados', async (req, res) => {
     });
 });
 
-// Dashboard consome esses dados (JSON)
+// Dashboard consome esses dados (JSON) - [CORRIGIDO AQUI]
 app.get('/api/data', (req, res) => {
-    const sql = 'SELECT temperatura, umidade, DATE_FORMAT(data_hora, "%H:%i") as hora FROM leituras ORDER BY id DESC LIMIT 20';
+    const sql = 'SELECT temperatura, umidade, DATE_FORMAT(data_hora, "%H:%i:%s") as hora FROM leituras ORDER BY id DESC LIMIT 20';
     db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({error: err});
+        if (err) {
+            console.error('Erro no select:', err);
+            return res.status(500).json({ error: "Falha na leitura do banco" });
+        }
         
-        // Inverte para o gráfico ler da esquerda para a direita
-        const historico = results.reverse();
-        
+        let temp = 0;
+        let umid = 0;
+        let historico = [];
+
+        // Verifica se realmente existem dados no banco antes de tentar processar
+        if (results && results.length > 0) {
+            historico = results.reverse(); // Inverte para o gráfico ler da esquerda para a direita
+            temp = historico[historico.length - 1].temperatura;
+            umid = historico[historico.length - 1].umidade;
+        }
+
         res.json({
-            temp: results[results.length-1]?.temperatura || 0,
-            umid: results[results.length-1]?.umidade || 0,
+            temp: temp,
+            umid: umid,
             ia_msg: ultima_analise_ia,
             led_state: comando_led,
             historico: historico
@@ -96,7 +110,7 @@ app.get('/api/led', (req, res) => {
     res.send("OK");
 });
 
-// ESP32 pergunta o estado do LED aqui (Polling)
+// ESP32 pergunta o estado do LED aqui
 app.get('/api/comando_led', (req, res) => {
     res.json({ led: comando_led });
 });
@@ -106,7 +120,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`MATRIZ OPERACIONAL NA PORTA ${PORT}`);
 });
 
-// --- INTERFACE WEB (REFORMULADA COM GRÁFICO) ---
+// --- INTERFACE WEB ---
 function getHtmlContent() {
     return `<!DOCTYPE html><html><head><meta charset="utf-8">
     <title>ARES v5 - CLOUD</title>
@@ -150,22 +164,31 @@ function getHtmlContent() {
                         y: { grid: { color: '#222' }, ticks: { color: '#00ffcc' } },
                         x: { grid: { color: '#222' }, ticks: { color: '#00ffcc' } }
                     },
-                    plugins: { legend: { labels: { color: '#00ffcc', font: { family: 'Share Tech Mono' } } } }
+                    plugins: { legend: { labels: { color: '#00ffcc', font: { family: 'Share Tech Mono' } } } },
+                    animation: false // Desliga animação para não bugar recarregamento
                 }
             });
         }
 
         function update() {
-            fetch('/api/data').then(r => r.json()).then(d => {
-                document.getElementById('t').innerText = d.temp.toFixed(1) + '°C';
-                document.getElementById('u').innerText = d.umid.toFixed(0) + '%';
-                document.getElementById('ai-text').innerText = '> ' + d.ia_msg;
+            fetch('/api/data')
+                .then(r => r.json())
+                .then(d => {
+                    if(d.error) return console.error(d.error);
 
-                // Atualizar Gráfico
-                chart.data.labels = d.historico.map(h => h.hora);
-                chart.data.datasets[0].data = d.historico.map(h => h.temp);
-                chart.update('none'); // Update sem animação para não pesar
-            }).catch(e => console.error("Erro na Matrix"));
+                    // Atualiza as caixas com proteção contra valores vazios
+                    document.getElementById('t').innerText = (d.temp || 0).toFixed(1) + '°C';
+                    document.getElementById('u').innerText = (d.umid || 0).toFixed(0) + '%';
+                    document.getElementById('ai-text').innerText = '> ' + (d.ia_msg || "Sincronizando...");
+
+                    // Atualiza o Gráfico apenas se houver histórico
+                    if(d.historico && d.historico.length > 0) {
+                        chart.data.labels = d.historico.map(h => h.hora || '');
+                        chart.data.datasets[0].data = d.historico.map(h => h.temp || 0);
+                        chart.update();
+                    }
+                })
+                .catch(e => console.error("Aguardando estabilização da rede..."));
         }
 
         function f(s) { 
@@ -175,7 +198,7 @@ function getHtmlContent() {
         }
 
         initChart();
-        setInterval(update, 3000);
+        setInterval(update, 3000); // Atualiza a página a cada 3 segundos
         update();
     </script></body></html>`;
 }
