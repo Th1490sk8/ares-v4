@@ -75,7 +75,7 @@ app.post('/api/dados', async (req, res) => {
 
 // Dashboard consome esses dados
 app.get('/api/data', (req, res) => {
-    const sql = `SELECT temperatura, umidade, DATE_FORMAT(data_hora, '%H:%i:%s') as hora FROM leituras ORDER BY id DESC LIMIT 20`;
+    const sql = `SELECT temperatura, umidade, DATE_FORMAT(DATE_SUB(data_hora, INTERVAL 3 HOUR), '%H:%i:%s') as hora FROM leituras ORDER BY id DESC LIMIT 20`;
     db.query(sql, (err, results) => {
         if (err) {
             console.error('Erro no select:', err);
