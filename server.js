@@ -16,13 +16,13 @@ app.use(express.json());
 let ultima_analise_ia = "Link neural em standby. Aguardando uplink...";
 let comando_led = false; 
 
+// 🛡️ MATRIZ BLINDADA: Chave da IA oculta
 const groq = new Groq({ 
-    apiKey: "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" 
+    apiKey: process.env.GROQ_API_KEY 
 });
 
-// --- CONEXÃO COM O BANCO DE DADOS (AIVEN) ---
-const uri_aiven = "mysql://avnadmin:AVNS_ve_Ovl6MuOzWmiWYOwb@mysql-15ef5ed3-thiagolsk8-8d2b.b.aivencloud.com:10432/defaultdb?ssl-mode=REQUIRED";
-
+// 🛡️ MATRIZ BLINDADA: URL do Banco oculta
+const uri_aiven = process.env.DATABASE_URL;
 const db = mysql.createPool(uri_aiven);
 
 // Garantir Tabela
@@ -73,9 +73,8 @@ app.post('/api/dados', async (req, res) => {
     });
 });
 
-// Dashboard consome esses dados (JSON)
+// Dashboard consome esses dados
 app.get('/api/data', (req, res) => {
-    // CORREÇÃO: Usando crases e aspas simples '%H:%i:%s' para não conflitar com o MySQL Strict Mode
     const sql = `SELECT temperatura, umidade, DATE_FORMAT(data_hora, '%H:%i:%s') as hora FROM leituras ORDER BY id DESC LIMIT 20`;
     db.query(sql, (err, results) => {
         if (err) {
@@ -87,24 +86,17 @@ app.get('/api/data', (req, res) => {
         let umid = 0;
         let historico = [];
 
-        // Verifica se realmente existem dados no banco antes de tentar processar
         if (results && results.length > 0) {
-            historico = results.reverse(); // Inverte para o gráfico ler da esquerda para a direita
+            historico = results.reverse(); 
             temp = historico[historico.length - 1].temperatura;
             umid = historico[historico.length - 1].umidade;
         }
 
-        res.json({
-            temp: temp,
-            umid: umid,
-            ia_msg: ultima_analise_ia,
-            led_state: comando_led,
-            historico: historico
-        });
+        res.json({ temp, umid, ia_msg: ultima_analise_ia, led_state: comando_led, historico });
     });
 });
 
-// Botão do site chama essa rota
+// Botões do site
 app.get('/api/led', (req, res) => {
     comando_led = req.query.state === 'on';
     console.log(`💡 COMANDO LED -> ${comando_led ? 'ON' : 'OFF'}`);
@@ -172,7 +164,7 @@ function getHtmlContent() {
                         x: { grid: { color: '#222' }, ticks: { color: '#00ffcc' } }
                     },
                     plugins: { legend: { labels: { color: '#fff', font: { family: 'Share Tech Mono' } } } },
-                    animation: false // Desliga animação para não bugar recarregamento
+                    animation: false
                 }
             });
         }
@@ -182,22 +174,14 @@ function getHtmlContent() {
                 .then(r => r.json())
                 .then(d => {
                     if(d.error) return console.error(d.error);
-
-                    // Atualiza as caixas com proteção contra valores vazios
                     document.getElementById('t').innerText = (d.temp || 0).toFixed(1) + '°C';
                     document.getElementById('u').innerText = (d.umid || 0).toFixed(0) + '%';
                     document.getElementById('ai-text').innerText = '> ' + (d.ia_msg || "Sincronizando...");
 
-                    // Atualiza o Gráfico apenas se houver histórico
                     if(d.historico && d.historico.length > 0) {
                         chart.data.labels = d.historico.map(h => h.hora || '');
-                        
-                        // Mapeia Temperatura para a primeira linha
                         chart.data.datasets[0].data = d.historico.map(h => h.temperatura || 0);
-                        
-                        // Mapeia Umidade para a segunda linha
                         chart.data.datasets[1].data = d.historico.map(h => h.umidade || 0);
-                        
                         chart.update();
                     }
                 })
@@ -205,13 +189,11 @@ function getHtmlContent() {
         }
 
         function f(s) { 
-            fetch('/api/led?state=' + s).then(() => {
-                console.log("Comando enviado: " + s);
-            });
+            fetch('/api/led?state=' + s).then(() => console.log("Comando: " + s));
         }
 
         initChart();
-        setInterval(update, 3000); // Atualiza a página a cada 3 segundos
+        setInterval(update, 3000);
         update();
     </script></body></html>`;
 }
