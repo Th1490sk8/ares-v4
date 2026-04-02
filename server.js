@@ -23,7 +23,7 @@ const groq = new Groq({
 // AQUI VOCÊ VAI COLOCAR OS DADOS DO BANCO DA NUVEM DEPOIS
 // --- CONEXÃO COM O BANCO DE DADOS (NUVEM - AIVEN) ---
 // Substitua a string abaixo pela sua "Service URI" copiada do Aiven
-const uri_aiven = "mysql://avnadmin:SUA_SENHA_AQUI@mysql-15ef5ed3-thiagolsk8-8d2b.b.aivencloud.com:10432/defaultdb?ssl-mode=REQUIRED";
+const uri_aiven = "mysql://avnadmin:AVNS_ve_Ovl6MuOzWmiWYOwbmysql-15ef5ed3-thiagolsk8-8d2b.b.aivencloud.com:10432/defaultdb?ssl-mode=REQUIRED";
 
 const db = mysql.createConnection(uri_aiven);
 
