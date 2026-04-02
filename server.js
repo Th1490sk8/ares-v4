@@ -73,7 +73,7 @@ app.post('/api/dados', async (req, res) => {
     });
 });
 
-// Dashboard consome esses dados (JSON) - [CORRIGIDO AQUI]
+// Dashboard consome esses dados (JSON)
 app.get('/api/data', (req, res) => {
     // CORREÇÃO: Usando crases e aspas simples '%H:%i:%s' para não conflitar com o MySQL Strict Mode
     const sql = `SELECT temperatura, umidade, DATE_FORMAT(data_hora, '%H:%i:%s') as hora FROM leituras ORDER BY id DESC LIMIT 20`;
@@ -158,14 +158,20 @@ function getHtmlContent() {
             const ctx = document.getElementById('grafico').getContext('2d');
             chart = new Chart(ctx, {
                 type: 'line',
-                data: { labels: [], datasets: [{ label: 'Temperatura °C', borderColor: '#ff00ea', data: [], tension: 0.4, backgroundColor: 'rgba(255, 0, 234, 0.1)', fill: true }] },
+                data: { 
+                    labels: [], 
+                    datasets: [
+                        { label: 'Temperatura °C', borderColor: '#ff00ea', data: [], tension: 0.4, backgroundColor: 'rgba(255, 0, 234, 0.05)', fill: true },
+                        { label: 'Umidade %', borderColor: '#00ffcc', data: [], tension: 0.4, backgroundColor: 'rgba(0, 255, 204, 0.05)', fill: true }
+                    ] 
+                },
                 options: { 
                     responsive: true,
                     scales: { 
                         y: { grid: { color: '#222' }, ticks: { color: '#00ffcc' } },
                         x: { grid: { color: '#222' }, ticks: { color: '#00ffcc' } }
                     },
-                    plugins: { legend: { labels: { color: '#00ffcc', font: { family: 'Share Tech Mono' } } } },
+                    plugins: { legend: { labels: { color: '#fff', font: { family: 'Share Tech Mono' } } } },
                     animation: false // Desliga animação para não bugar recarregamento
                 }
             });
@@ -185,7 +191,13 @@ function getHtmlContent() {
                     // Atualiza o Gráfico apenas se houver histórico
                     if(d.historico && d.historico.length > 0) {
                         chart.data.labels = d.historico.map(h => h.hora || '');
+                        
+                        // Mapeia Temperatura para a primeira linha
                         chart.data.datasets[0].data = d.historico.map(h => h.temperatura || 0);
+                        
+                        // Mapeia Umidade para a segunda linha
+                        chart.data.datasets[1].data = d.historico.map(h => h.umidade || 0);
+                        
                         chart.update();
                     }
                 })
