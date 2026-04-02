@@ -48,7 +48,8 @@ app.get('/', (req, res) => {
 // Recebe dados do ESP32
 app.post('/api/dados', async (req, res) => {
     const { temperatura, umidade } = req.body;
-    const sql = 'INSERT INTO leituras (temperatura, umidade) VALUES (?, ?)';
+    // CORREÇÃO 1: Grava no banco já com o horário de Brasília (-3h)
+    const sql = 'INSERT INTO leituras (temperatura, umidade, data_hora) VALUES (?, ?, DATE_SUB(NOW(), INTERVAL 3 HOUR))';
     
     db.query(sql, [temperatura, umidade], async (err) => {
         if (err) {
@@ -75,7 +76,8 @@ app.post('/api/dados', async (req, res) => {
 
 // Dashboard consome esses dados
 app.get('/api/data', (req, res) => {
-    const sql = `SELECT temperatura, umidade, DATE_FORMAT(DATE_SUB(data_hora, INTERVAL 3 HOUR), '%H:%i:%s') as hora FROM leituras ORDER BY id DESC LIMIT 20`;
+    // CORREÇÃO 2: Lê a hora do banco sem fazer contas adicionais
+    const sql = `SELECT temperatura, umidade, DATE_FORMAT(data_hora, '%H:%i:%s') as hora FROM leituras ORDER BY id DESC LIMIT 20`;
     db.query(sql, (err, results) => {
         if (err) {
             console.error('Erro no select:', err);
