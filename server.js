@@ -185,7 +185,7 @@ function getHtmlContent() {
                     // Atualiza o Gráfico apenas se houver histórico
                     if(d.historico && d.historico.length > 0) {
                         chart.data.labels = d.historico.map(h => h.hora || '');
-                        chart.data.datasets[0].data = d.historico.map(h => h.temp || 0);
+                        chart.data.datasets[0].data = d.historico.map(h => h.temperatura || 0);
                         chart.update();
                     }
                 })
